@@ -736,8 +736,9 @@ def extract_all_parts(font_path, output_dir, progress_callback=None, log_callbac
         for part_name, part_info in parts.items():
             current_idx += 1
             stats["total"] += 1
-            
-            filename = f"{category}_{part_name}_{part_info['char']}.png"
+
+            # [MODIFIED] 2025-11-10: シンプルなファイル名に変更（font_editor互換）
+            filename = f"{part_name}.png"
             output_path = os.path.join(output_dir, filename)
             
             msg = f"  {part_name} ({part_info['char']}) [例: {part_info['sample']}]"
@@ -772,7 +773,35 @@ def extract_all_parts(font_path, output_dir, progress_callback=None, log_callbac
     catalog_path = os.path.join(output_dir, "parts_catalog.json")
     with open(catalog_path, 'w', encoding='utf-8') as f:
         json.dump(catalog_json, f, ensure_ascii=False, indent=2)
-    
+
+    # [ADD] 2025-11-10: font_editor互換のmetadata.jsonも生成
+    metadata = {}
+    category_map = {
+        "hen": "偏",
+        "tsukuri": "旁",
+        "kanmuri": "冠",
+        "ashi": "脚",
+        "nyou": "繞",
+        "tare": "垂",
+        "kamae": "構"
+    }
+
+    for category, parts in catalog_json.items():
+        for part_name, part_info in parts.items():
+            metadata[part_name] = {
+                "type": category,
+                "category": category_map.get(category, category),
+                "char": part_info["char"],
+                "sample": part_info["sample"],
+                "split": part_info["split"],
+                "ratio": part_info.get("ratio", 0.5),
+                "used_ratio": part_info.get("used_ratio", 0.5)
+            }
+
+    metadata_path = os.path.join(output_dir, "metadata.json")
+    with open(metadata_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata, f, ensure_ascii=False, indent=2)
+
     log("\n" + "=" * 70)
     log("抽出完了")
     log("=" * 70)
@@ -784,8 +813,9 @@ def extract_all_parts(font_path, output_dir, progress_callback=None, log_callbac
         log(f"  {cat:10s}: 成功 {cat_stats['success']:2d} / 失敗 {cat_stats['failed']:2d}")
     log(f"\n📁 保存先: {os.path.abspath(output_dir)}")
     log(f"📋 カタログ: {catalog_path}")
+    log(f"📋 メタデータ (font_editor互換): {metadata_path}")
     log("=" * 70)
-    
+
     return stats
 
 # ============================================================

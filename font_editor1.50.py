@@ -195,19 +195,26 @@ class FontProject:
         except Exception:
             return False
 
-    def save_project(self, folder_path: str):
-        """プロジェクト保存（*.fproj）"""
+    def save_project(self, folder_path: str, progress_callback: Optional[Callable[[int, int, str], None]] = None):
+        """プロジェクト保存（*.fproj）(2025-11-10: 進捗バー対応)"""
         import os, json
         from PIL import Image
         os.makedirs(folder_path, exist_ok=True)
         os.makedirs(os.path.join(folder_path, 'glyphs'), exist_ok=True)
-        
+
+        # 総ステップ数を計算
+        glyphs_with_bitmap = [g for g in self.glyphs.values() if getattr(g, 'bitmap', None) is not None]
+        parts_count = len(getattr(self, 'parts', {}))
+        total_steps = 1 + len(glyphs_with_bitmap) + parts_count  # メタデータ + グリフ + パーツ
+
+        current_step = 0
+
         # [ADD] 2025-01-15: マッピング情報を保存
         mappings = {}
         for code, glyph in self.glyphs.items():
             if hasattr(glyph, 'mapping_char') and glyph.mapping_char:
                 mappings[code] = glyph.mapping_char
-        
+
         meta = {
             'font_path': getattr(self, 'font_path', None),
             'original_ttf_path': getattr(self, 'original_ttf_path', None),
@@ -217,12 +224,26 @@ class FontProject:
         }
         with open(os.path.join(folder_path, 'metadata.json'), 'w', encoding='utf-8') as f:
             json.dump(meta, f, ensure_ascii=False, indent=2)
+
+        current_step += 1
+        if progress_callback:
+            progress_callback(current_step, total_steps, 'メタデータを保存中...')
+
+        # グリフ保存
         for code, g in self.glyphs.items():
             bmp = getattr(g, 'bitmap', None)
             if bmp is None:
                 continue
             fn = os.path.join(folder_path, 'glyphs', f'U+{code:04X}.png')
             bmp.save(fn, 'PNG')
+
+            current_step += 1
+            if progress_callback and current_step % 10 == 0:  # 10個ごとに更新
+                progress_callback(current_step, total_steps, f'グリフ保存中... ({current_step}/{total_steps})')
+
+        # 最後のグリフ保存完了を報告
+        if progress_callback:
+            progress_callback(current_step, total_steps, 'グリフ保存完了')
 
         # [ADD] 2025-10-23: 偏旁エディタ用パーツデータを保存
         if getattr(self, 'parts', None):
@@ -242,10 +263,19 @@ class FontProject:
                     # 失敗した場合はスキップ
                     continue
                 parts_meta[name] = meta
+
+                current_step += 1
+                if progress_callback:
+                    progress_callback(current_step, total_steps, f'パーツ保存中... {name}')
+
             # 偏旁のメタデータをJSONで保存
             if parts_meta:
                 with open(os.path.join(parts_dir, 'metadata.json'), 'w', encoding='utf-8') as pf:
                     json.dump(parts_meta, pf, ensure_ascii=False, indent=2)
+
+        # 完了
+        if progress_callback:
+            progress_callback(total_steps, total_steps, '保存完了')
 
     def load_project(self, folder_path: str):
         """プロジェクト読込"""
@@ -382,15 +412,16 @@ class FontRenderer:
     
     @staticmethod
     def load_font(
-        font_path: str, 
-        char_codes: List[int], 
-        project: FontProject, 
-        progress_callback: Optional[Callable[[int, int], None]] = None
+        font_path: str,
+        char_codes: List[int],
+        project: FontProject,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+        font_index: int = 0
     ) -> bool:
-        """フォントを読み込んで各文字をレンダリング (2025-10-11: 型ヒント追加)"""
+        """フォントを読み込んで各文字をレンダリング (2025-10-11: 型ヒント追加、2025-11-10: TTC対応)"""
         try:
-            # PIL ImageFontでフォント読み込み (2025-10-11: 定数使用)
-            pil_font = ImageFont.truetype(font_path, size=Config.FONT_RENDER_SIZE)
+            # PIL ImageFontでフォント読み込み (2025-10-11: 定数使用、2025-11-10: TTC対応)
+            pil_font = ImageFont.truetype(font_path, size=Config.FONT_RENDER_SIZE, index=font_index)
             
             # 元のTTFパスを保存（マージ用）
             if not project.original_ttf_path:
@@ -3506,38 +3537,45 @@ class FontEditorApp(tk.Tk):
         self.status_label.pack(side='bottom', fill='x')
     
     def _open_font(self) -> None:
-        """フォント読み込み (2025-10-11: エラーハンドリング改善)"""
+        """フォント読み込み (2025-10-11: エラーハンドリング改善、2025-11-10: TTC対応)"""
         path = filedialog.askopenfilename(
             title='フォントファイルを選択',
             filetypes=[
+                ('Font Files', '*.ttf;*.otf;*.ttc'),
                 ('TrueType Font', '*.ttf'),
+                ('TrueType Collection', '*.ttc'),
                 ('OpenType Font', '*.otf'),
                 ('All Files', '*.*')
             ]
         )
-        
+
         if not path:
             return
-        
+
+        # TTCファイルの場合はフォントインデックスを選択 (2025-11-10)
+        font_index = 0
+        if path.lower().endswith('.ttc'):
+            font_index = self._select_ttc_font_index(path)
+
         # プロジェクト初期化
         self.project.font_path = path
-        
+
         # 現在の範囲の文字コード取得
         char_codes = self.project.get_char_codes()
-        
+
         # プログレスウィンドウ作成
         progress_win = tk.Toplevel(self)
         progress_win.title('読み込み中...')
         progress_win.geometry('500x150')
         progress_win.transient(self)
         progress_win.grab_set()
-        
+
         tk.Label(
             progress_win,
             text='フォントを読み込んでいます...',
             font=('Arial', 12)
         ).pack(pady=10)
-        
+
         progress_var = tk.IntVar(value=0)
         progress_bar = ttk.Progressbar(
             progress_win,
@@ -3546,27 +3584,28 @@ class FontEditorApp(tk.Tk):
             length=400
         )
         progress_bar.pack(pady=10)
-        
+
         progress_label = tk.Label(
             progress_win,
             text='0 / 0 文字',
             font=('Arial', 10)
         )
         progress_label.pack()
-        
+
         # プログレスバー更新用コールバック
         def progress_callback(current: int, total: int) -> None:
             """プログレス更新"""
             progress_var.set(current)
             progress_label.config(text=f'{current} / {total} 文字')
             progress_win.update()
-        
-        # 同期読み込み実行
+
+        # 同期読み込み実行 (2025-11-10: font_index追加)
         success = FontRenderer.load_font(
             path,
             char_codes,
             self.project,
-            progress_callback
+            progress_callback,
+            font_index
         )
         
         if not success:
@@ -3598,17 +3637,85 @@ class FontEditorApp(tk.Tk):
         )
         
         # ===== バックグラウンドで残りの範囲を読み込み =====
-        self._start_background_loading(path)
-    
-    def _start_background_loading(self, font_path: str) -> None:
-        """バックグラウンド読み込み開始"""
+        self._start_background_loading(path, font_index)
+
+    def _get_ttc_font_count(self, ttc_path: str) -> int:
+        """TTCファイルに含まれるフォント数を取得 (2025-11-10: 新規追加)"""
+        try:
+            count = 0
+            while True:
+                try:
+                    ImageFont.truetype(ttc_path, 20, index=count)
+                    count += 1
+                    if count > 100:  # 安全のため上限を設定
+                        break
+                except:
+                    break
+            return max(count, 1)
+        except:
+            return 1
+
+    def _select_ttc_font_index(self, ttc_path: str) -> int:
+        """TTCファイルからフォントインデックスを選択 (2025-11-10: 新規追加)"""
+        # TTCファイルに含まれるフォント数を調べる
+        font_count = self._get_ttc_font_count(ttc_path)
+
+        if font_count <= 1:
+            return 0
+
+        # ダイアログでフォントインデックスを選択
+        dialog = tk.Toplevel(self)
+        dialog.title('TTCフォント選択')
+        dialog.geometry('400x250')
+        dialog.transient(self)
+        dialog.grab_set()
+
+        tk.Label(
+            dialog,
+            text=f'このTTCファイルには{font_count}個のフォントが含まれています。\n使用するフォントを選択してください:',
+            font=('Arial', 10)
+        ).pack(pady=10)
+
+        # プレビューフレーム
+        preview_frame = tk.Frame(dialog)
+        preview_frame.pack(pady=10, fill='both', expand=True)
+
+        # スクロールバー付きリストボックス
+        scrollbar = tk.Scrollbar(preview_frame)
+        scrollbar.pack(side='right', fill='y')
+
+        listbox = tk.Listbox(preview_frame, yscrollcommand=scrollbar.set, height=8)
+        listbox.pack(side='left', fill='both', expand=True, padx=10)
+        scrollbar.config(command=listbox.yview)
+
+        for i in range(font_count):
+            listbox.insert('end', f'フォント {i}')
+
+        listbox.selection_set(0)
+
+        selected_index = tk.IntVar(value=0)
+
+        def on_ok():
+            sel = listbox.curselection()
+            if sel:
+                selected_index.set(sel[0])
+            dialog.destroy()
+
+        # OKボタン
+        tk.Button(dialog, text='OK', command=on_ok, width=10).pack(pady=10)
+
+        dialog.wait_window()
+        return selected_index.get()
+
+    def _start_background_loading(self, font_path: str, font_index: int = 0) -> None:
+        """バックグラウンド読み込み開始 (2025-11-10: TTC対応)"""
         # 既存のローダー停止
         if self.bg_loader:
             self.bg_loader.stop()
-        
+
         # 新規ローダー作成
         self.bg_loader = BackgroundLoader(self.project, self._on_bg_status_update)
-        self.bg_loader.start_background_load(font_path, self.project.char_range)
+        self.bg_loader.start_background_load(font_path, self.project.char_range, font_index)
         
         # ステータス更新
         self.status_label.config(
@@ -4627,32 +4734,32 @@ class BackgroundLoader:
         self.stop_flag: bool = False
         self.result_queue: queue.Queue = queue.Queue()  # 結果受け渡し用
     
-    def start_background_load(self, font_path: str, initial_range: Tuple[int, int]) -> None:
-        """バックグラウンド読み込み開始"""
+    def start_background_load(self, font_path: str, initial_range: Tuple[int, int], font_index: int = 0) -> None:
+        """バックグラウンド読み込み開始 (2025-11-10: TTC対応)"""
         if self.is_loading:
             return  # 既に読み込み中
-        
+
         self.stop_flag = False
         self.is_loading = True
-        
+
         # スレッド開始
         self.thread = threading.Thread(
             target=self._background_load_worker,
-            args=(font_path, initial_range),
+            args=(font_path, initial_range, font_index),
             daemon=True
         )
         self.thread.start()
-    
+
     def stop(self) -> None:
         """読み込み停止"""
         self.stop_flag = True
         self.is_loading = False
-    
-    def _background_load_worker(self, font_path: str, initial_range: Tuple[int, int]) -> None:
-        """バックグラウンド読み込みワーカー (2025-10-11: スレッド安全性改善、定数使用)"""
+
+    def _background_load_worker(self, font_path: str, initial_range: Tuple[int, int], font_index: int = 0) -> None:
+        """バックグラウンド読み込みワーカー (2025-10-11: スレッド安全性改善、定数使用、2025-11-10: TTC対応)"""
         try:
-            # フォント読み込み (2025-10-11: 定数使用)
-            pil_font = ImageFont.truetype(font_path, size=Config.FONT_RENDER_SIZE)
+            # フォント読み込み (2025-10-11: 定数使用、2025-11-10: TTC対応)
+            pil_font = ImageFont.truetype(font_path, size=Config.FONT_RENDER_SIZE, index=font_index)
             
             # 全範囲を取得（初期範囲以外）
             all_ranges = list(Config.CHAR_RANGES.values())
@@ -4810,27 +4917,70 @@ def _save_project_dialog_impl(self: FontEditorApp) -> bool:
     if not path.endswith('.fproj'):
         path += '.fproj'
 
+    # プログレスウィンドウ作成 (2025-11-10)
+    progress_win = tk.Toplevel(self)
+    progress_win.title('保存中...')
+    progress_win.geometry('500x150')
+    progress_win.transient(self)
+    progress_win.grab_set()
+
+    tk.Label(
+        progress_win,
+        text='プロジェクトを保存しています...',
+        font=('Arial', 12)
+    ).pack(pady=10)
+
+    progress_var = tk.IntVar(value=0)
+    progress_bar = ttk.Progressbar(
+        progress_win,
+        maximum=100,
+        variable=progress_var,
+        length=400
+    )
+    progress_bar.pack(pady=10)
+
+    progress_label = tk.Label(
+        progress_win,
+        text='準備中...',
+        font=('Arial', 10)
+    )
+    progress_label.pack()
+
+    # プログレスバー更新用コールバック
+    def progress_callback(current: int, total: int, message: str) -> None:
+        """プログレス更新"""
+        if total > 0:
+            progress_var.set(int((current / total) * 100))
+            progress_bar.config(maximum=total, value=current)
+        progress_label.config(text=message)
+        progress_win.update()
+
     try:
         with self.project._lock:  # (2025-10-11: スレッドセーフ化)
             orig_glyphs = self.project.glyphs
             snapshot = dict(orig_glyphs)
             self.project.glyphs = snapshot
-        
+
         try:
-            self.project.save_project(path)
+            self.project.save_project(path, progress_callback)
             self.project.dirty = False
+            progress_win.destroy()
             messagebox.showinfo('保存完了', f'プロジェクトを保存しました:\n{path}')
             return True
         except OSError as e:
+            progress_win.destroy()
             messagebox.showerror('保存エラー', f'保存に失敗しました:\n{e}')
             return False
         except Exception as e:
+            progress_win.destroy()
             messagebox.showerror('保存エラー', f'予期しないエラー:\n{e}')
             return False
         finally:
             with self.project._lock:
                 self.project.glyphs = orig_glyphs
     except Exception as e:
+        if progress_win.winfo_exists():
+            progress_win.destroy()
         messagebox.showerror('保存エラー', f'保存処理中にエラーが発生しました:\n{e}')
         return False
 
