@@ -1,0 +1,95 @@
+# AI フォント生成システム - 生成設定
+
+# モデル
+model:
+  checkpoint_path: null  # CLIで指定
+
+# スタイル参照
+style:
+  # 参照タイプ: font, image, blend
+  reference_type: "font"
+
+  # フォント参照
+  font_reference:
+    path: null  # CLIで指定
+    sample_characters: "あいうえおかきくけこ"  # スタイル抽出用
+    num_samples: 10
+
+  # 画像参照（手書き見本）
+  image_reference:
+    paths: []
+    preprocess: true
+
+  # スタイル混合
+  blend:
+    enabled: false
+    sources: []  # [{path: font1.ttf, weight: 0.6}, {path: font2.ttf, weight: 0.4}]
+
+  # スタイル強度
+  style_strength: 1.0  # 0.0-1.0
+
+# 生成設定
+generation:
+  # 文字セット
+  characters: "hiragana,katakana"
+
+  # バッチサイズ
+  batch_size: 32
+
+  # 品質設定
+  image_size: 128
+  anti_aliasing: true
+
+  # ベクトル化
+  vectorization:
+    enabled: true
+    method: "potrace"  # potrace, autotrace, custom
+    threshold: 200
+    smoothing: 3
+    optimize_paths: true
+    simplify_tolerance: 0.2
+
+  # 後処理
+  postprocessing:
+    smoothing: true
+    noise_reduction: true
+    auto_contrast: false
+
+# フォント構築
+font_building:
+  # メタデータ
+  font_name: "AI Generated Font"
+  font_family: "AI Font"
+  font_style: "Regular"
+  version: "1.0"
+  author: "fontgen-ai"
+  copyright: null
+  license: null
+
+  # メトリクス
+  metrics:
+    units_per_em: 1000
+    ascent: 880
+    descent: -120
+    line_gap: 0
+    x_height: 500
+    cap_height: 700
+
+  # グリフ設定
+  glyph:
+    advance_width: 1000
+    side_bearings: 50  # 左右のマージン
+
+  # 出力形式
+  output_format: "ttf"  # ttf, otf
+
+# デバイス
+device:
+  use_gpu: true
+  gpu_id: 0
+
+# 出力
+output:
+  save_images: true
+  save_vectors: true
+  overwrite: false
