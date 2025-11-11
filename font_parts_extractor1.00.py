@@ -1,8 +1,10 @@
 ﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-偏旁抽出ツール - 完全版 GUI v2.9 (2025-11-09)
-動的境界検出アルゴリズム統合 + 2048x2048解像度対応
+偏旁抽出ツール v1.00
+動的境界検出アルゴリズム + 2048x2048解像度対応 + font_editor連携
+作成日: 2025-10-10
+更新日: 2025-11-10 font_editor互換metadata.json生成、ファイル名簡略化
 """
 
 import os
@@ -1750,7 +1752,7 @@ class PartsExtractorGUI:
     
     def __init__(self, root):
         self.root = root
-        self.root.title("偏旁抽出ツール v2.9 (2025-11-09) - 動的境界検出 + 2048解像度対応")
+        self.root.title("偏旁抽出ツール v1.00")
 
         self.font_path = None
         self.font_index = 0  # TTCファイル用のフォントインデックス

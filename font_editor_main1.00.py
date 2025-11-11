@@ -1,10 +1,10 @@
 ﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-フォントエディタ - ハイブリッド方式 v1.01
+フォントエディタ v1.00 - ハイブリッド方式
 ビットマップ編集 → BDF/TTF書き出し対応
 作成日: 2025-10-03
-更新日: 2025-10-11 スレッド安全性・参照管理・型ヒント改善
+更新日: 2025-11-10 TTCサポート、保存進捗バー、parts連携強化
 """
 
 # === 標準ライブラリ ===
@@ -3457,7 +3457,7 @@ class FontEditorApp(tk.Tk):
         self._open_editors: List[GlyphEditor] = []  # 開いているエディタ追跡
         super().__init__()
         
-        self.title('フォントエディタ - ハイブリッド方式(全機能版)')
+        self.title('フォントエディタ v1.00 - ハイブリッド方式')
         self.geometry(f'{Config.WINDOW_WIDTH}x{Config.WINDOW_HEIGHT}')
         
         self.project: FontProject = FontProject()
@@ -3486,6 +3486,8 @@ class FontEditorApp(tk.Tk):
         file_menu.add_command(label='フォントを開く...', command=self._open_font)
         file_menu.add_command(label='プロジェクトを保存...', command=self._save_project_dialog)
         file_menu.add_command(label='プロジェクトを開く...', command=self._open_project_dialog)
+        file_menu.add_separator()
+        file_menu.add_command(label='部首フォルダをインポート...', command=self._import_parts_folder)
         file_menu.add_separator()
         file_menu.add_command(label='バックグラウンド読み込み停止', command=self._stop_bg_loading)
         file_menu.add_separator()
@@ -3892,6 +3894,102 @@ class FontEditorApp(tk.Tk):
         """プロジェクト読込ダイアログ（BLOCK9で実装）"""
         # BLOCK9で実装される
         pass
+
+    # [ADD] 2025-11-10: 部首フォルダインポート機能
+    def _import_parts_folder(self) -> None:
+        """外部のpartsフォルダをプロジェクトにインポート"""
+        folder = filedialog.askdirectory(title='部首フォルダを選択（metadata.jsonが含まれるフォルダ）')
+        if not folder:
+            return
+
+        # metadata.jsonの存在確認
+        metadata_path = os.path.join(folder, 'metadata.json')
+        if not os.path.exists(metadata_path):
+            messagebox.showerror(
+                'エラー',
+                'metadata.jsonが見つかりません。\n\n'
+                '偏旁抽出ツール(font_parts_extractor)で\n'
+                '抽出されたフォルダを選択してください。'
+            )
+            return
+
+        try:
+            # メタデータ読み込み
+            with open(metadata_path, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+
+            # プログレス表示
+            progress_win = tk.Toplevel(self)
+            progress_win.title('インポート中...')
+            progress_win.geometry('400x120')
+            progress_win.transient(self)
+            progress_win.grab_set()
+
+            tk.Label(
+                progress_win,
+                text='部首データをインポートしています...',
+                font=('Arial', 11)
+            ).pack(pady=10)
+
+            progress_label = tk.Label(
+                progress_win,
+                text='0 / 0',
+                font=('Arial', 10)
+            )
+            progress_label.pack(pady=5)
+
+            progress_win.update()
+
+            # 初期化
+            if not hasattr(self.project, 'parts') or self.project.parts is None:
+                self.project.parts = {}
+
+            imported_count = 0
+            total_count = len(metadata)
+
+            # パーツをインポート
+            for part_name, part_meta in metadata.items():
+                progress_label.config(text=f'{imported_count + 1} / {total_count}: {part_name}')
+                progress_win.update()
+
+                # 画像ファイルパス
+                img_path = os.path.join(folder, f'{part_name}.png')
+                if not os.path.exists(img_path):
+                    continue
+
+                # 画像読み込み
+                try:
+                    img = Image.open(img_path).convert('L')
+                    self.project.parts[part_name] = {
+                        'image': img,
+                        'meta': part_meta
+                    }
+                    imported_count += 1
+                except Exception as e:
+                    print(f'Warning: Failed to import {part_name}: {e}')
+                    continue
+
+            progress_win.destroy()
+
+            messagebox.showinfo(
+                'インポート完了',
+                f'{imported_count}個の部首をインポートしました。\n\n'
+                f'「部首」ボタンからパレットを開いて使用できます。'
+            )
+
+        except json.JSONDecodeError as e:
+            messagebox.showerror(
+                'JSONエラー',
+                f'metadata.jsonの読み込みに失敗しました。\n\n'
+                f'ファイルが破損している可能性があります。\n'
+                f'エラー詳細: {e}'
+            )
+        except Exception as e:
+            messagebox.showerror(
+                'インポートエラー',
+                f'部首フォルダのインポートに失敗しました。\n\n'
+                f'エラー詳細: {e}'
+            )
 
     # [ADD] 2025-10-23: 偏旁パレットを開く
     def _open_parts_palette(self) -> None:
