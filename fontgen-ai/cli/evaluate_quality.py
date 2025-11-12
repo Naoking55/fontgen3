@@ -11,14 +11,21 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import yaml
 
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.model import FontVAE
+from models.vae import FontVAE
 from src.dataset import FontDataset
-from src.config import load_config
 from src.metrics import SSIMMetric, PSNRMetric
+
+
+def load_config(config_path):
+    """設定ファイルを読み込む"""
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    return config
 
 
 logging.basicConfig(
