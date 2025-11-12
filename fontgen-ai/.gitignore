@@ -39,21 +39,28 @@ env/
 .ipynb_checkpoints
 *.ipynb
 
-# PyTorch
-*.pth
+# PyTorch - 中間チェックポイントのみ除外、ベストと最終は保持
+outputs/*/checkpoints/epoch_*.pth
+outputs/*/checkpoints/checkpoint_*.pth
 *.pt
 *.ckpt
 
-# Data
+# Data - 前処理済みデータは保持、大量の中間ファイルは除外
 data/fonts/*.ttf
 data/fonts/*.otf
-data/processed/
+# data/processed/ は保持（コメントアウト）
 data/skeleton_db/
 
-# Output
-output/
+# Output - 重要なファイルは保持
+outputs/*/logs/
+outputs/*/tensorboard/
 models/pretrained/
-*.png
+# ベストモデルとサンプルは保持するため、特定のサブディレクトリのみ除外
+
+# 画像 - サンプル以外は除外
+outputs/*/samples/*.png
+!outputs/*/samples/epoch_final.png
+!outputs/*/samples/grid.png
 *.jpg
 *.jpeg
 
