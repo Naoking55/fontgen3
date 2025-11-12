@@ -1,0 +1,115 @@
+# AI フォント生成システム - 学習設定
+
+# モデル設定（model_config.yamlから継承）
+model:
+  z_content_dim: 128
+  z_style_dim: 64
+  image_size: 128
+
+# 学習パラメータ
+training:
+  # 基本設定
+  batch_size: 64
+  num_epochs: 200
+  learning_rate: 0.0001
+
+  # オプティマイザー
+  optimizer: "adam"
+  optimizer_params:
+    betas: [0.9, 0.999]
+    eps: 1.0e-08
+    weight_decay: 0.0001
+
+  # 学習率スケジューラー
+  scheduler: "reduce_on_plateau"
+  scheduler_params:
+    mode: "min"
+    factor: 0.5
+    patience: 10
+    min_lr: 1.0e-07
+
+  # 損失関数の重み
+  loss_weights:
+    reconstruction: 1.0
+    kl_divergence: 0.001
+    style_consistency: 0.5
+    skeleton_consistency: 0.5
+    perceptual: 0.0  # オプション（VGGベース）
+
+  # 正則化
+  gradient_clip: 1.0
+
+  # Early Stopping
+  early_stopping:
+    enabled: true
+    patience: 20
+    min_delta: 0.001
+
+  # チェックポイント
+  checkpoint:
+    save_frequency: 5  # エポックごと
+    save_best_only: true
+    save_last: true
+    max_checkpoints: 5  # 保存する最大数
+
+# データ設定
+data:
+  # 文字セット
+  characters: "hiragana,katakana"  # hiragana, katakana, kanji_joyo, alphabet, numbers
+
+  # データ分割
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+
+  # データ拡張
+  augmentation:
+    enabled: true
+    rotation_range: 5  # ±5度
+    scale_range: [0.95, 1.05]
+    translation_range: 0.05  # ±5%
+    noise_std: 0.01
+    apply_probability: 0.5
+
+  # データローダー
+  num_workers: 4
+  pin_memory: true
+  shuffle: true
+
+# ロギング
+logging:
+  # TensorBoard
+  tensorboard:
+    enabled: true
+    log_dir: "logs"
+    log_frequency: 10  # ステップごと
+
+  # Weights & Biases
+  wandb:
+    enabled: false
+    project: "fontgen-ai"
+    entity: null
+    name: null
+
+  # コンソール出力
+  console:
+    enabled: true
+    log_frequency: 10
+
+  # サンプル画像
+  save_samples:
+    enabled: true
+    frequency: 5  # エポックごと
+    num_samples: 16
+
+# 検証
+validation:
+  frequency: 1  # エポックごと
+  metrics:
+    - "mse"
+    - "ssim"
+    - "psnr"
+
+# 再現性
+seed: 42
+deterministic: true

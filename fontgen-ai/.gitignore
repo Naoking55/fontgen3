@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# PyTorch - 中間チェックポイントのみ除外、ベストと最終は保持
+outputs/*/checkpoints/epoch_*.pth
+outputs/*/checkpoints/checkpoint_*.pth
+*.pt
+*.ckpt
+
+# Data - 前処理済みデータは保持、大量の中間ファイルは除外
+data/fonts/*.ttf
+data/fonts/*.otf
+# data/processed/ は保持（コメントアウト）
+data/skeleton_db/
+
+# Output - 重要なファイルは保持
+outputs/*/logs/
+outputs/*/tensorboard/
+models/pretrained/
+# ベストモデルとサンプルは保持するため、特定のサブディレクトリのみ除外
+
+# 画像 - サンプル以外は除外
+outputs/*/samples/*.png
+!outputs/*/samples/epoch_final.png
+!outputs/*/samples/grid.png
+*.jpg
+*.jpeg
+
+# Logs
+*.log
+logs/
+runs/
+wandb/
+
+# TensorBoard
+events.out.tfevents.*
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temporary
+*.tmp
+*.temp
+.cache/

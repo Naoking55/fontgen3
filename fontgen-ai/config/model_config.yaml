@@ -1,0 +1,52 @@
+# AI フォント生成システム - モデル設定
+
+model:
+  # モデルアーキテクチャ
+  architecture: "vae"  # vae, gan, diffusion
+
+  # 潜在変数の次元
+  z_content_dim: 128   # 骨格エンコーダーの出力次元
+  z_style_dim: 64      # スタイルエンコーダーの出力次元
+
+  # 画像サイズ
+  image_size: 128      # 128x128 (または 256x256)
+  image_channels: 1    # グレースケール
+
+  # エンコーダー設定
+  skeleton_encoder:
+    conv_channels: [64, 128, 256, 512]
+    kernel_size: 4
+    stride: 2
+    padding: 1
+    activation: "leaky_relu"
+    use_batchnorm: true
+    dropout: 0.0
+
+  style_encoder:
+    conv_channels: [64, 128, 256]
+    kernel_size: 4
+    stride: 2
+    padding: 1
+    activation: "leaky_relu"
+    use_batchnorm: true
+    use_adaptive_pool: true
+    adaptive_pool_size: [4, 4]
+    dropout: 0.0
+
+  # デコーダー設定
+  decoder:
+    conv_channels: [512, 256, 128, 64]
+    kernel_size: 4
+    stride: 2
+    padding: 1
+    activation: "relu"
+    use_batchnorm: true
+    output_activation: "sigmoid"
+    dropout: 0.0
+
+# デバイス設定
+device:
+  use_gpu: true
+  gpu_id: 0
+  num_workers: 4
+  pin_memory: true
