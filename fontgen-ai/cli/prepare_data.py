@@ -107,21 +107,48 @@ def prepare_data(
     # フォントごとにデータを準備
     print("\n🎨 文字画像を生成中...")
 
-    # フォントをtrain/val/testに分割
-    np.random.shuffle(font_info)
+    # 単一フォントの場合は文字を分割、複数フォントの場合はフォントを分割
+    single_font_mode = len(font_info) == 1
 
-    n_train = int(len(font_info) * train_split)
-    n_val = int(len(font_info) * val_split)
+    if single_font_mode:
+        logger.info("Single font detected - splitting characters instead of fonts")
 
-    train_fonts = font_info[:n_train]
-    val_fonts = font_info[n_train : n_train + n_val]
-    test_fonts = font_info[n_train + n_val :] if test_split > 0 else []
+        # 文字をtrain/val/testに分割
+        font_data = font_info[0]
+        available_chars = list(font_data["available_chars"])
+        np.random.shuffle(available_chars)
 
-    splits = [
-        ("train", train_fonts),
-        ("val", val_fonts),
-        ("test", test_fonts),
-    ]
+        n_train = int(len(available_chars) * train_split)
+        n_val = int(len(available_chars) * val_split)
+
+        train_chars = available_chars[:n_train]
+        val_chars = available_chars[n_train : n_train + n_val]
+        test_chars = available_chars[n_train + n_val :] if test_split > 0 else []
+
+        logger.info(f"Character split - Train: {len(train_chars)}, Val: {len(val_chars)}, Test: {len(test_chars)}")
+
+        # 各splitに同じフォントを割り当てるが、文字を分ける
+        splits = [
+            ("train", [{"path": font_data["path"], "name": font_data["name"], "available_chars": train_chars}]),
+            ("val", [{"path": font_data["path"], "name": font_data["name"], "available_chars": val_chars}]),
+            ("test", [{"path": font_data["path"], "name": font_data["name"], "available_chars": test_chars}] if test_split > 0 else []),
+        ]
+    else:
+        # フォントをtrain/val/testに分割（従来の動作）
+        np.random.shuffle(font_info)
+
+        n_train = int(len(font_info) * train_split)
+        n_val = int(len(font_info) * val_split)
+
+        train_fonts = font_info[:n_train]
+        val_fonts = font_info[n_train : n_train + n_val]
+        test_fonts = font_info[n_train + n_val :] if test_split > 0 else []
+
+        splits = [
+            ("train", train_fonts),
+            ("val", val_fonts),
+            ("test", test_fonts),
+        ]
 
     for split_name, split_fonts in splits:
         if len(split_fonts) == 0:
@@ -172,18 +199,34 @@ def prepare_data(
                 logger.warning(f"Failed to process font {font_name}: {e}")
 
     # メタデータを保存
-    metadata = {
-        "image_size": image_size,
-        "num_fonts": len(font_info),
-        "num_train_fonts": len(train_fonts),
-        "num_val_fonts": len(val_fonts),
-        "num_test_fonts": len(test_fonts),
-        "characters": sorted(list(all_characters)),
-        "fonts": [f["name"] for f in font_info],
-        "train_fonts": [f["name"] for f in train_fonts],
-        "val_fonts": [f["name"] for f in val_fonts],
-        "test_fonts": [f["name"] for f in test_fonts],
-    }
+    if single_font_mode:
+        metadata = {
+            "image_size": image_size,
+            "num_fonts": 1,
+            "single_font_mode": True,
+            "num_train_chars": len(train_chars),
+            "num_val_chars": len(val_chars),
+            "num_test_chars": len(test_chars),
+            "characters": sorted(list(all_characters)),
+            "train_chars": sorted(train_chars),
+            "val_chars": sorted(val_chars),
+            "test_chars": sorted(test_chars),
+            "font_name": font_info[0]["name"],
+        }
+    else:
+        metadata = {
+            "image_size": image_size,
+            "num_fonts": len(font_info),
+            "single_font_mode": False,
+            "num_train_fonts": len(train_fonts),
+            "num_val_fonts": len(val_fonts),
+            "num_test_fonts": len(test_fonts),
+            "characters": sorted(list(all_characters)),
+            "fonts": [f["name"] for f in font_info],
+            "train_fonts": [f["name"] for f in train_fonts],
+            "val_fonts": [f["name"] for f in val_fonts],
+            "test_fonts": [f["name"] for f in test_fonts],
+        }
 
     metadata_path = output_dir / "metadata.json"
     with open(metadata_path, "w", encoding="utf-8") as f:
@@ -191,11 +234,20 @@ def prepare_data(
 
     logger.info(f"\n✅ データ準備完了!")
     logger.info(f"  出力先: {output_dir}")
-    logger.info(f"  フォント数: {len(font_info)}")
-    logger.info(f"    - Train: {len(train_fonts)}")
-    logger.info(f"    - Val: {len(val_fonts)}")
-    logger.info(f"    - Test: {len(test_fonts)}")
-    logger.info(f"  文字数: {len(all_characters)}")
+    if single_font_mode:
+        logger.info(f"  モード: 単一フォント（文字分割）")
+        logger.info(f"  フォント: {font_info[0]['name']}")
+        logger.info(f"  文字数: {len(all_characters)}")
+        logger.info(f"    - Train: {len(train_chars)}")
+        logger.info(f"    - Val: {len(val_chars)}")
+        logger.info(f"    - Test: {len(test_chars)}")
+    else:
+        logger.info(f"  モード: 複数フォント")
+        logger.info(f"  フォント数: {len(font_info)}")
+        logger.info(f"    - Train: {len(train_fonts)}")
+        logger.info(f"    - Val: {len(val_fonts)}")
+        logger.info(f"    - Test: {len(test_fonts)}")
+        logger.info(f"  文字数: {len(all_characters)}")
     logger.info(f"  メタデータ: {metadata_path}")
 
 

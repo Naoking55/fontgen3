@@ -117,7 +117,8 @@ class Trainer:
             # 損失を記録
             for key in epoch_losses.keys():
                 if key in losses:
-                    epoch_losses[key] += losses[key].item()
+                    value = losses[key]
+                    epoch_losses[key] += value.item() if torch.is_tensor(value) else value
 
             # メトリクスを計算
             with torch.no_grad():
@@ -128,12 +129,15 @@ class Trainer:
             # TensorBoard
             if self.use_tensorboard and self.global_step % 10 == 0:
                 for key, value in losses.items():
-                    self.writer.add_scalar(f"Train/{key}", value.item(), self.global_step)
+                    scalar_value = value.item() if torch.is_tensor(value) else value
+                    self.writer.add_scalar(f"Train/{key}", scalar_value, self.global_step)
 
             # プログレスバー更新
+            total_loss_val = losses['total_loss'].item() if torch.is_tensor(losses['total_loss']) else losses['total_loss']
+            recon_loss_val = losses['recon_loss'].item() if torch.is_tensor(losses['recon_loss']) else losses['recon_loss']
             pbar.set_postfix({
-                'loss': losses['total_loss'].item(),
-                'recon': losses['recon_loss'].item(),
+                'loss': total_loss_val,
+                'recon': recon_loss_val,
                 'ssim': metrics['ssim'],
             })
 
@@ -183,7 +187,8 @@ class Trainer:
             # 損失を記録
             for key in epoch_losses.keys():
                 if key in losses:
-                    epoch_losses[key] += losses[key].item()
+                    value = losses[key]
+                    epoch_losses[key] += value.item() if torch.is_tensor(value) else value
 
             # メトリクスを計算
             metrics = calculate_all_metrics(outputs['reconstructed'], images)

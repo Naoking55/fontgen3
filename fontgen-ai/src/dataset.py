@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 import logging
 
-from preprocessing import Preprocessor
+from src.preprocessing import Preprocessor
 
 logger = logging.getLogger(__name__)
 
@@ -51,13 +51,18 @@ class FontDataset(Dataset):
         self.preprocessor = Preprocessor(image_size=image_size)
 
         # データ拡張パラメータ
-        self.aug_params = augmentation_params or {
+        default_params = {
             "rotation_range": 5.0,
             "scale_range": (0.95, 1.05),
             "translation_range": 0.05,
             "noise_std": 0.01,
             "apply_probability": 0.5,
         }
+        self.aug_params = augmentation_params or default_params
+
+        # Remove 'enabled' key if present (it's not a parameter for augment_data)
+        if isinstance(self.aug_params, dict) and 'enabled' in self.aug_params:
+            self.aug_params = {k: v for k, v in self.aug_params.items() if k != 'enabled'}
 
         # メタデータ読み込み
         self.metadata_path = self.data_dir / "metadata.json"
@@ -139,8 +144,8 @@ class FontDataset(Dataset):
         if self.augmentation:
             image = self.preprocessor.augment_data(image, **self.aug_params)
 
-        # Tensorに変換 (C, H, W)
-        image_tensor = torch.from_numpy(image).unsqueeze(0)  # (1, H, W)
+        # Tensorに変換 (C, H, W) - float32に明示的に変換
+        image_tensor = torch.from_numpy(image).float().unsqueeze(0)  # (1, H, W)
 
         # フォントIDと文字IDを数値化
         font_id = self._font_to_id(item["font_id"])
