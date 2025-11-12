@@ -1,8 +1,9 @@
 # 作業引き継ぎドキュメント
 
 **作成日:** 2025-11-12
-**前回ブランチ:** `claude/font-generation-design-011CV2XXa7L1xAorSz5PRLEk`
-**現在のブランチ:** `claude/fix-token-limit-issue-011CV4Fevw3ZUATs64vKZgF9`
+**最終更新:** 2025-11-12 16:36 UTC
+**前回ブランチ:** `claude/fix-token-limit-issue-011CV4Fevw3ZUATs64vKZgF9`
+**現在のブランチ:** `claude/resume-hiragana-kanji-learning-011CV4H7rEtn1rJMnUv9WpYM`
 
 ---
 
@@ -56,27 +57,39 @@
 
 ## 最後の作業内容
 
-### 実行中だった作業
-**「ひらがな+漢字統合学習の実装と開始」**
+### 今回のセッションで完了した作業
+**「データ永続化戦略の実装と外部ストレージ調査」**
 
-最終コミット（`83f9167`）のメッセージ:
+最終コミット（`8bcd1e0`）のメッセージ:
 ```
-ひらがな+漢字統合学習の実装と開始
+外部ストレージ選択肢ガイドを追加
 ```
 
 ### 作業の詳細
-1. **ひらがなのみの学習を完了**
-   - データセット: 324画像（4フォント × 81文字）
-   - SSIM: 0.649（実用レベル達成）
-   - レポート: `fontgen-ai/TRAINING_REPORT.md`
+1. **データ永続化の問題を特定**
+   - `.gitignore`で重要ファイルが除外されていた
+   - セッション間でデータが失われる問題を解決
 
-2. **次のステップとして、ひらがな+漢字の統合学習を開始**
-   - 設定ファイル: `config/training_config.hiragana_kanji.yaml`
-   - データ: `data/processed_hiragana_kanji/`
-   - 目的: より大規模なデータセットで学習し、漢字にも対応
+2. **データ永続化戦略を実装**
+   - `.gitignore`を調整: ベストモデル（best.pth）、最終モデル（last.pth）を保持
+   - `DATA_PERSISTENCE_STRATEGY.md`に戦略を文書化
+   - Git LFS用の`.gitattributes`を作成
 
-3. **途中で停止**
-   - トークンリミットに達したため、学習の完了確認や評価ができなかった可能性
+3. **外部ストレージの選択肢を調査**
+   - `EXTERNAL_STORAGE_OPTIONS.md`を作成
+   - 6つの選択肢を比較: Hugging Face Hub, Git LFS, Google Drive, AWS S3等
+   - このプロジェクトに最適な方法を推奨
+
+4. **ブランチの統合**
+   - 前回のブランチ（`claude/fix-token-limit-issue-011CV4Fevw3ZUATs64vKZgF9`）から
+   - 現在のブランチ（`claude/resume-hiragana-kanji-learning-011CV4H7rEtn1rJMnUv9WpYM`）に変更をマージ
+   - 全ての変更をプッシュ完了
+
+### まだ未完了のタスク
+1. **ひらがな+漢字学習の実行**
+   - データ準備（画像生成）がまだ未実行
+   - PyTorchのインストールが進行中
+   - 学習は次のセッションで実行予定
 
 ---
 
