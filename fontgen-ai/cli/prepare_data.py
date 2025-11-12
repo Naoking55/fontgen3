@@ -61,8 +61,13 @@ def prepare_data(
     char_list = get_characters(characters)
     logger.info(f"Target characters: {len(char_list)}")
 
-    # フォントファイル取得
-    font_files = list(font_dir.glob("*.ttf")) + list(font_dir.glob("*.otf"))
+    # フォントファイル取得 (大文字・小文字両方対応)
+    font_files = (
+        list(font_dir.glob("*.ttf")) +
+        list(font_dir.glob("*.TTF")) +
+        list(font_dir.glob("*.otf")) +
+        list(font_dir.glob("*.OTF"))
+    )
     logger.info(f"Found {len(font_files)} font files")
 
     if len(font_files) == 0:
