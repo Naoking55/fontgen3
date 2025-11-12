@@ -66,7 +66,9 @@ def prepare_data(
         list(font_dir.glob("*.ttf")) +
         list(font_dir.glob("*.TTF")) +
         list(font_dir.glob("*.otf")) +
-        list(font_dir.glob("*.OTF"))
+        list(font_dir.glob("*.OTF")) +
+        list(font_dir.glob("*.ttc")) +
+        list(font_dir.glob("*.TTC"))
     )
     logger.info(f"Found {len(font_files)} font files")
 

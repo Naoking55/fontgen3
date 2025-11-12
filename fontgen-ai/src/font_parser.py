@@ -22,21 +22,29 @@ class FontParser:
     TTF/OTFフォントから文字画像を生成します。
     """
 
-    def __init__(self, font_path: str, image_size: int = 128):
+    def __init__(self, font_path: str, image_size: int = 128, font_index: int = 0):
         """
         Args:
             font_path (str): フォントファイルのパス
             image_size (int): レンダリング画像サイズ
+            font_index (int): TTCファイルの場合のフォントインデックス（デフォルト: 0）
         """
         self.font_path = Path(font_path)
         self.image_size = image_size
+        self.font_index = font_index
 
         if not self.font_path.exists():
             raise FileNotFoundError(f"Font file not found: {font_path}")
 
+        # TTCファイルかどうかを判定
+        is_ttc = self.font_path.suffix.lower() == '.ttc'
+
         # fontToolsでフォント情報を読み込む
         try:
-            self.ttfont = TTFont(str(self.font_path))
+            if is_ttc:
+                self.ttfont = TTFont(str(self.font_path), fontNumber=font_index)
+            else:
+                self.ttfont = TTFont(str(self.font_path))
             self.font_name = self._get_font_name()
             logger.info(f"Loaded font: {self.font_name}")
         except Exception as e:
@@ -45,9 +53,14 @@ class FontParser:
         # PILでフォントを読み込む（レンダリング用）
         try:
             # フォントサイズを自動調整
-            self.pil_font = ImageFont.truetype(
-                str(self.font_path), size=int(image_size * 0.7)
-            )
+            if is_ttc:
+                self.pil_font = ImageFont.truetype(
+                    str(self.font_path), size=int(image_size * 0.7), index=font_index
+                )
+            else:
+                self.pil_font = ImageFont.truetype(
+                    str(self.font_path), size=int(image_size * 0.7)
+                )
         except Exception as e:
             raise ValueError(f"Failed to load font for rendering: {e}")
 
