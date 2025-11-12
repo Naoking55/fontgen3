@@ -1,0 +1,87 @@
+# AI フォント生成システム - 複数フォント長期学習用設定（最適化版）
+
+model:
+  z_content_dim: 128      # 複数フォント用に増加
+  z_style_dim: 64         # 複数フォント用に増加
+  image_size: 128
+
+training:
+  batch_size: 32          # データ量に対応
+  num_epochs: 100         # 長期学習
+  learning_rate: 0.0005   # 安定した学習のため調整（0.001→0.0005）
+
+  optimizer: "adam"
+  optimizer_params:
+    betas: [0.9, 0.999]
+    weight_decay: 0.0001
+
+  scheduler: "reduce_on_plateau"
+  scheduler_params:
+    mode: "min"
+    factor: 0.5
+    patience: 7           # 長期学習に対応（5→7）
+    min_lr: 1.0e-07
+
+  loss_weights:
+    reconstruction: 1.0
+    kl_divergence: 0.0005    # KL lossの変動抑制（0.001→0.0005）
+    style_consistency: 0.7   # バランス調整（1.0→0.7）
+    skeleton_consistency: 0.7 # バランス調整（1.0→0.7）
+
+  gradient_clip: 2.0         # より大きな更新を許可（1.0→2.0）
+
+  early_stopping:
+    enabled: true
+    patience: 15             # 長期学習に対応（10→15）
+    min_delta: 0.0005        # より細かい改善を検出（0.001→0.0005）
+
+  checkpoint:
+    save_frequency: 5
+    save_best_only: true
+    save_last: true
+
+data:
+  characters: "hiragana"
+  train_split: 0.75
+  val_split: 0.25
+  test_split: 0.0
+
+  augmentation:
+    enabled: true
+    rotation_range: 5
+    scale_range: [0.95, 1.05]
+    translation_range: 0.05
+    noise_std: 0.01
+    apply_probability: 0.5
+
+  num_workers: 2
+  pin_memory: true
+  shuffle: true
+
+logging:
+  tensorboard:
+    enabled: true
+    log_dir: "logs"
+    log_frequency: 10
+
+  wandb:
+    enabled: false
+
+  console:
+    enabled: true
+    log_frequency: 10
+
+  save_samples:
+    enabled: true
+    frequency: 3             # 品質評価のため頻度アップ（5→3）
+    num_samples: 16          # より多くのサンプル（12→16）
+
+validation:
+  frequency: 1
+  metrics:
+    - "mse"
+    - "ssim"
+    - "psnr"               # PSNR追加
+
+seed: 42
+deterministic: true
