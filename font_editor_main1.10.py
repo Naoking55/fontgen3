@@ -24,7 +24,7 @@ from contextlib import contextmanager
 
 # === サードパーティライブラリ ===
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, simpledialog
+from tkinter import ttk, filedialog, messagebox
 
 from PIL import Image, ImageDraw, ImageFont, ImageTk, ImageChops
 
@@ -3979,13 +3979,40 @@ class FontEditorApp(tk.Tk):
             messagebox.showwarning('警告', 'フォントが読み込まれていません')
             return
 
-        # フォント名入力ダイアログ
-        font_name = tk.simpledialog.askstring(
-            'フォント名',
-            'WebFontのフォント名を入力してください:',
-            initialvalue='CustomFont'
-        )
+        # フォント名入力ダイアログ（カスタム実装、macOS互換性のため）
+        dialog = tk.Toplevel(self)
+        dialog.title('フォント名')
+        dialog.geometry('400x150')
+        dialog.transient(self)
+        dialog.grab_set()
 
+        tk.Label(dialog, text='WebFontのフォント名を入力してください:', pady=10).pack()
+
+        entry = tk.Entry(dialog, width=40)
+        entry.insert(0, 'CustomFont')
+        entry.pack(pady=10)
+        entry.focus()
+
+        result = [None]
+
+        def on_ok():
+            result[0] = entry.get()
+            dialog.destroy()
+
+        def on_cancel():
+            dialog.destroy()
+
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=10)
+        tk.Button(button_frame, text='OK', command=on_ok, width=10).pack(side='left', padx=5)
+        tk.Button(button_frame, text='キャンセル', command=on_cancel, width=10).pack(side='left', padx=5)
+
+        # Enterキーでも確定
+        entry.bind('<Return>', lambda e: on_ok())
+
+        self.wait_window(dialog)
+
+        font_name = result[0]
         if not font_name:
             return
 
