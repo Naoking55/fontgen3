@@ -3667,14 +3667,14 @@ class FontEditorApp(tk.Tk):
 
         # ダイアログでフォントインデックスを選択
         dialog = tk.Toplevel(self)
-        dialog.title('TTCフォント選択')
+        dialog.title('Select TTC Font')
         dialog.geometry('400x250')
         dialog.transient(self)
         dialog.grab_set()
 
         tk.Label(
             dialog,
-            text=f'このTTCファイルには{font_count}個のフォントが含まれています。\n使用するフォントを選択してください:',
+            text=f'This TTC file contains {font_count} fonts.\nPlease select a font:',
             font=('Arial', 10)
         ).pack(pady=10)
 
@@ -3691,7 +3691,7 @@ class FontEditorApp(tk.Tk):
         scrollbar.config(command=listbox.yview)
 
         for i in range(font_count):
-            listbox.insert('end', f'フォント {i}')
+            listbox.insert(tk.END, f'Font {i}')
 
         listbox.selection_set(0)
 
