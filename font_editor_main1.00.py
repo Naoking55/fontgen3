@@ -3543,7 +3543,6 @@ class FontEditorApp(tk.Tk):
         path = filedialog.askopenfilename(
             title='フォントファイルを選択',
             filetypes=[
-                ('Font Files', '*.ttf;*.otf;*.ttc'),
                 ('TrueType Font', '*.ttf'),
                 ('TrueType Collection', '*.ttc'),
                 ('OpenType Font', '*.otf'),
