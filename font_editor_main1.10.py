@@ -903,19 +903,19 @@ class GlyphEditor(tk.Toplevel):
         self.shape_start: Optional[Tuple[int, int]] = None
         self.shape_end: Optional[Tuple[int, int]] = None
 
-        # ガイドライン保存 (2025-11-13: 表示フラグ追加)
+        # ガイドライン保存 (2025-11-13: 一時的に無効化 - macOS互換性テスト)
         self.guidelines: List[Tuple[str, int]] = []
-        self.show_guidelines: tk.BooleanVar = tk.BooleanVar(value=True)
-        # デフォルトガイドライン設定
-        ascent = int(Config.CANVAS_SIZE * Config.ASCENT_RATIO)
-        descent = int(Config.CANVAS_SIZE * Config.DESCENT_RATIO)
-        baseline = Config.CANVAS_SIZE - descent
-        self.guidelines = [
-            ('ベースライン', baseline),
-            ('アセンダー', ascent),
-            ('ディセンダー', Config.CANVAS_SIZE),
-            ('中央', Config.CANVAS_SIZE // 2)
-        ]
+        self.show_guidelines: tk.BooleanVar = tk.BooleanVar(value=False)
+        # デフォルトガイドライン設定（一時的にコメントアウト）
+        # ascent = int(Config.CANVAS_SIZE * Config.ASCENT_RATIO)
+        # descent = int(Config.CANVAS_SIZE * Config.DESCENT_RATIO)
+        # baseline = Config.CANVAS_SIZE - descent
+        # self.guidelines = [
+        #     ('ベースライン', baseline),
+        #     ('アセンダー', ascent),
+        #     ('ディセンダー', Config.CANVAS_SIZE),
+        #     ('中央', Config.CANVAS_SIZE // 2)
+        # ]
 
         # ナビゲーション用キャンバスのPhotoImage保持
         self._move_photo: Optional[ImageTk.PhotoImage] = None
@@ -1173,15 +1173,15 @@ class GlyphEditor(tk.Toplevel):
         )
         grid_toggle.pack(anchor='w', padx=5, pady=(2, 2))
 
-        # [ADD] 2025-11-13: ガイドライン表示切り替え
-        guideline_toggle = tk.Checkbutton(
-            right_column,
-            text='ガイドライン',
-            variable=self.show_guidelines,
-            command=self._update_preview,
-            bg=Config.COLOR_BG
-        )
-        guideline_toggle.pack(anchor='w', padx=5, pady=(2, 5))
+        # [ADD] 2025-11-13: ガイドライン表示切り替え（一時的に無効化 - macOS互換性テスト）
+        # guideline_toggle = tk.Checkbutton(
+        #     right_column,
+        #     text='ガイドライン',
+        #     variable=self.show_guidelines,
+        #     command=self._update_preview,
+        #     bg=Config.COLOR_BG
+        # )
+        # guideline_toggle.pack(anchor='w', padx=5, pady=(2, 5))
 
         # ブラシサイズ調整
         tk.Label(right_column, text='ブラシサイズ', bg=Config.COLOR_BG, font=('Arial', 10, 'bold')).pack(pady=(15, 5))
@@ -3509,8 +3509,9 @@ class FontEditorApp(tk.Tk):
         file_menu.add_command(label='プロジェクトを開く...', command=self._open_project_dialog)
         file_menu.add_separator()
         file_menu.add_command(label='部首フォルダをインポート...', command=self._import_parts_folder)
-        file_menu.add_command(label='CSVからインポート...', command=self._import_csv)
-        file_menu.add_command(label='CSVにエクスポート...', command=self._export_csv)
+        # 一時的に無効化 - macOS互換性テスト
+        # file_menu.add_command(label='CSVからインポート...', command=self._import_csv)
+        # file_menu.add_command(label='CSVにエクスポート...', command=self._export_csv)
         file_menu.add_separator()
         file_menu.add_command(label='バックグラウンド読み込み停止', command=self._stop_bg_loading)
         file_menu.add_separator()
@@ -3528,10 +3529,11 @@ class FontEditorApp(tk.Tk):
         export_menu.add_command(label='BDF形式で保存...', command=self._export_bdf)
         export_menu.add_command(label='TTF形式で保存...', command=self._export_ttf)
         export_menu.add_separator()
-        export_menu.add_command(label='WebFontパッケージ...', command=self._export_webfont_package)
-        export_menu.add_command(label='WOFF形式で保存...', command=self._export_woff)
-        export_menu.add_command(label='SVGフォント形式で保存...', command=self._export_svg)
-        export_menu.add_separator()
+        # 一時的に無効化 - macOS互換性テスト
+        # export_menu.add_command(label='WebFontパッケージ...', command=self._export_webfont_package)
+        # export_menu.add_command(label='WOFF形式で保存...', command=self._export_woff)
+        # export_menu.add_command(label='SVGフォント形式で保存...', command=self._export_svg)
+        # export_menu.add_separator()
         export_menu.add_command(label='PNG一括書き出し...', command=self._export_png_batch)
 
         # ツールバー
