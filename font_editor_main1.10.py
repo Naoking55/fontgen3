@@ -1075,17 +1075,17 @@ class GlyphEditor(tk.Toplevel):
         toolbar = tk.Frame(self, bg=Config.COLOR_BG)
         toolbar.pack(side='top', fill='x', padx=5, pady=5)
         
-        tk.Button(toolbar, text='💾 保存', command=self._save).pack(side='left', padx=2)
-        tk.Button(toolbar, text='📸 PNG保存', command=self._save_png).pack(side='left', padx=2)
-        tk.Button(toolbar, text='📋 コピー', command=self._copy).pack(side='left', padx=2)
-        tk.Button(toolbar, text='✂️ 切り取り', command=self._cut_selection).pack(side='left', padx=2)
-        tk.Button(toolbar, text='📄 貼付', command=self._paste).pack(side='left', padx=2)
-        tk.Button(toolbar, text='🗑️ クリア', command=self._clear).pack(side='left', padx=2)
-        tk.Button(toolbar, text='⭕ 空白化', command=self._mark_as_empty).pack(side='left', padx=2)
-        tk.Button(toolbar, text='🔥 他フォント読込', command=self._load_from_other_font).pack(side='left', padx=2)
-        
+        tk.Button(toolbar, text='保存', command=self._save).pack(side='left', padx=2)
+        tk.Button(toolbar, text='PNG保存', command=self._save_png).pack(side='left', padx=2)
+        tk.Button(toolbar, text='コピー', command=self._copy).pack(side='left', padx=2)
+        tk.Button(toolbar, text='切り取り', command=self._cut_selection).pack(side='left', padx=2)
+        tk.Button(toolbar, text='貼付', command=self._paste).pack(side='left', padx=2)
+        tk.Button(toolbar, text='クリア', command=self._clear).pack(side='left', padx=2)
+        tk.Button(toolbar, text='空白化', command=self._mark_as_empty).pack(side='left', padx=2)
+        tk.Button(toolbar, text='他フォント読込', command=self._load_from_other_font).pack(side='left', padx=2)
+
         # ズームコントロール
-        tk.Label(toolbar, text='🔍', bg=Config.COLOR_BG).pack(side='left', padx=(10, 0))
+        tk.Label(toolbar, text='ズーム:', bg=Config.COLOR_BG).pack(side='left', padx=(10, 0))
         tk.Button(toolbar, text='-', command=self._zoom_out, width=2).pack(side='left', padx=2)
         self.zoom_label = tk.Label(toolbar, text='100%', bg=Config.COLOR_BG, width=6)
         self.zoom_label.pack(side='left', padx=2)
@@ -1146,11 +1146,11 @@ class GlyphEditor(tk.Toplevel):
         # アンドゥ・リドゥボタン
         undo_redo_frame = tk.Frame(right_column, bg=Config.COLOR_BG)
         undo_redo_frame.pack(pady=(5, 0), fill='x')
-        tk.Button(undo_redo_frame, text='↩️', command=self._undo, width=3).pack(side='left', padx=2)
-        tk.Button(undo_redo_frame, text='↪️', command=self._redo, width=3).pack(side='left', padx=2)
+        tk.Button(undo_redo_frame, text='↶', command=self._undo, width=3).pack(side='left', padx=2)
+        tk.Button(undo_redo_frame, text='↷', command=self._redo, width=3).pack(side='left', padx=2)
 
         # 設定ボタン
-        tk.Button(right_column, text='⚙ 設定', command=self._show_settings_dialog, width=10).pack(fill='x', padx=2, pady=(10, 2))
+        tk.Button(right_column, text='設定', command=self._show_settings_dialog, width=10).pack(fill='x', padx=2, pady=(10, 2))
 
         # ナビゲーションウィンドウ
         nav_frame = tk.Frame(right_column, bg=Config.COLOR_BG)
@@ -3526,21 +3526,21 @@ class FontEditorApp(tk.Tk):
         export_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label='エクスポート', menu=export_menu)
         export_menu.add_command(label='BDF形式で保存...', command=self._export_bdf)
-        export_menu.add_command(label='TTF形式で保存... (高品質アウトライン)', command=self._export_ttf)
+        export_menu.add_command(label='TTF形式で保存...', command=self._export_ttf)
         export_menu.add_separator()
-        export_menu.add_command(label='WebFontパッケージ... (TTF/WOFF/SVG+HTML)', command=self._export_webfont_package)
+        export_menu.add_command(label='WebFontパッケージ...', command=self._export_webfont_package)
         export_menu.add_command(label='WOFF形式で保存...', command=self._export_woff)
-        export_menu.add_command(label='SVGフォントで保存...', command=self._export_svg)
+        export_menu.add_command(label='SVGフォント形式で保存...', command=self._export_svg)
         export_menu.add_separator()
         export_menu.add_command(label='PNG一括書き出し...', command=self._export_png_batch)
-        
+
         # ツールバー
         toolbar = tk.Frame(self, bg=Config.COLOR_BG)
         toolbar.pack(side='top', fill='x', padx=5, pady=5)
-        
-        tk.Button(toolbar, text='📂 フォントを開く', command=self._open_font).pack(side='left', padx=2)
-        tk.Button(toolbar, text='🔍 フィルタ', command=self._show_filter_dialog).pack(side='left', padx=2)
-        tk.Button(toolbar, text='👁️ プレビュー', command=self._show_text_preview).pack(side='left', padx=2)
+
+        tk.Button(toolbar, text='フォントを開く', command=self._open_font).pack(side='left', padx=2)
+        tk.Button(toolbar, text='フィルタ', command=self._show_filter_dialog).pack(side='left', padx=2)
+        tk.Button(toolbar, text='プレビュー', command=self._show_text_preview).pack(side='left', padx=2)
         # [ADD] 2025-10-23: 部首パレットを開くボタン
         tk.Button(toolbar, text='部首', command=self._open_parts_palette).pack(side='left', padx=2)
         
