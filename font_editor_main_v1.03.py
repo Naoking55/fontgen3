@@ -28,6 +28,7 @@ from tkinter import ttk, filedialog, messagebox
 
 from PIL import Image, ImageDraw, ImageFont, ImageTk, ImageChops, ImageFilter, ImageOps
 import numpy as np
+from scipy import ndimage
 
 
 
@@ -1774,23 +1775,28 @@ class GlyphEditor(tk.Toplevel):
     
     # ===== 描画メソッド (2025-10-13: 基本描画処理) =====
     
-    def _draw_point(self, x: int, y: int) -> None:
+    def _draw_point(self, x: int, y: int, color: Optional[int] = None) -> None:
         """点を描画"""
         if not (0 <= x < Config.CANVAS_SIZE and 0 <= y < Config.CANVAS_SIZE):
             return
-        
+
         pixels = self.edit_bitmap.load()
-        color = 0 if self.current_tool == 'pen' else 255  # ペン=黒、消しゴム=白
-        
+        # 色が指定されていない場合は、ツールに応じて決定
+        if color is None:
+            if self.current_tool == 'eraser':
+                color = 255  # 消しゴム=白
+            else:
+                color = 0  # ペン・図形=黒
+
         # ブラシサイズに応じて円形で描画
         radius = self.brush_size // 2
-        
+
         for dy in range(-radius, radius + 1):
             for dx in range(-radius, radius + 1):
                 if dx * dx + dy * dy <= radius * radius:  # 円形判定
                     px = x + dx
                     py = y + dy
-                    
+
                     if 0 <= px < Config.CANVAS_SIZE and 0 <= py < Config.CANVAS_SIZE:
                         pixels[px, py] = color
     
@@ -2366,19 +2372,43 @@ class GlyphEditor(tk.Toplevel):
         """図形を確定して描画"""
         x1, y1 = start
         x2, y2 = end
-        
+
+        # 座標を正規化（左上→右下）
+        if x1 > x2:
+            x1, x2 = x2, x1
+        if y1 > y2:
+            y1, y2 = y2, y1
+
         draw = ImageDraw.Draw(self.edit_bitmap)
-        
+
         if self.current_tool == 'line':
-            # 直線描画
-            self._draw_line(x1, y1, x2, y2)
+            # 直線描画（黒で描画）
+            self._draw_line(start[0], start[1], end[0], end[1])
         elif self.current_tool == 'rect':
-            # 矩形描画
-            draw.rectangle((x1, y1, x2, y2), outline=0, width=self.brush_size)
+            # 矩形描画（太さ1ピクセルの輪郭）
+            if self.brush_size <= 1:
+                draw.rectangle((x1, y1, x2, y2), outline=0)
+            else:
+                # ブラシサイズに応じた太い輪郭
+                for i in range(self.brush_size):
+                    offset = i // 2
+                    if i % 2 == 0:
+                        draw.rectangle((x1 - offset, y1 - offset, x2 + offset, y2 + offset), outline=0)
+                    else:
+                        draw.rectangle((x1 + offset + 1, y1 + offset + 1, x2 - offset - 1, y2 - offset - 1), outline=0)
         elif self.current_tool == 'ellipse':
-            # 楕円描画
-            draw.ellipse((x1, y1, x2, y2), outline=0, width=self.brush_size)
-        
+            # 楕円描画（太さ1ピクセルの輪郭）
+            if self.brush_size <= 1:
+                draw.ellipse((x1, y1, x2, y2), outline=0)
+            else:
+                # ブラシサイズに応じた太い輪郭
+                for i in range(self.brush_size):
+                    offset = i // 2
+                    if i % 2 == 0:
+                        draw.ellipse((x1 - offset, y1 - offset, x2 + offset, y2 + offset), outline=0)
+                    else:
+                        draw.ellipse((x1 + offset + 1, y1 + offset + 1, x2 - offset - 1, y2 - offset - 1), outline=0)
+
         self._save_to_undo()
         self._update_preview()
     
@@ -6700,82 +6730,46 @@ class BoldThinGeneratorDialog(tk.Toplevel):
             messagebox.showerror('エラー', f'プレビュー生成エラー:\n{str(e)}')
 
     def _generate_bold(self, bitmap: Image.Image, weight: int) -> Image.Image:
-        """太字生成（膨張処理）"""
+        """太字生成（膨張処理）- scipy使用で高速化"""
         # numpy配列に変換
         img_array = np.array(bitmap)
 
-        # 二値化（閾値128）
+        # 二値化（閾値128、黒が1、白が0）
         binary = (img_array < 128).astype(np.uint8)
 
-        # カーネルサイズ = weight * 2 + 1（3, 5, 7, 9, 11）
-        kernel_size = weight * 2 + 1
-        kernel = np.ones((kernel_size, kernel_size), np.uint8)
+        # カーネルサイズ（weight回の膨張処理）
+        kernel = np.ones((3, 3), np.uint8)
 
-        # 膨張処理
-        dilated = self._morphology_dilate_full(binary, kernel)
+        # weight回繰り返し膨張処理（scipyのbinary_dilationを使用）
+        dilated = binary
+        for _ in range(weight):
+            dilated = ndimage.binary_dilation(dilated, structure=kernel).astype(np.uint8)
 
-        # グレースケールに戻す
+        # グレースケールに戻す（1→0（黒）、0→255（白））
         result = (1 - dilated) * 255
 
         return Image.fromarray(result.astype(np.uint8), mode='L')
 
     def _generate_thin(self, bitmap: Image.Image, weight: int) -> Image.Image:
-        """細字生成（収縮処理）"""
+        """細字生成（収縮処理）- scipy使用で高速化"""
         # numpy配列に変換
         img_array = np.array(bitmap)
 
-        # 二値化（閾値128）
+        # 二値化（閾値128、黒が1、白が0）
         binary = (img_array < 128).astype(np.uint8)
 
-        # カーネルサイズ = weight * 2 + 1（3, 5, 7, 9, 11）
-        kernel_size = weight * 2 + 1
-        kernel = np.ones((kernel_size, kernel_size), np.uint8)
+        # カーネルサイズ
+        kernel = np.ones((3, 3), np.uint8)
 
-        # 収縮処理
-        eroded = self._morphology_erode_full(binary, kernel)
+        # weight回繰り返し収縮処理（scipyのbinary_erosionを使用）
+        eroded = binary
+        for _ in range(weight):
+            eroded = ndimage.binary_erosion(eroded, structure=kernel).astype(np.uint8)
 
-        # グレースケールに戻す
+        # グレースケールに戻す（1→0（黒）、0→255（白））
         result = (1 - eroded) * 255
 
         return Image.fromarray(result.astype(np.uint8), mode='L')
-
-    def _morphology_dilate_full(self, binary: np.ndarray, kernel: np.ndarray) -> np.ndarray:
-        """膨張処理（全画像対応）"""
-        h, w = binary.shape
-        kh, kw = kernel.shape
-        pad_h, pad_w = kh // 2, kw // 2
-
-        # パディング
-        padded = np.pad(binary, ((pad_h, pad_h), (pad_w, pad_w)), mode='constant', constant_values=0)
-        result = np.zeros_like(binary)
-
-        # 膨張
-        for i in range(h):
-            for j in range(w):
-                region = padded[i:i+kh, j:j+kw]
-                if np.any(region * kernel):
-                    result[i, j] = 1
-
-        return result
-
-    def _morphology_erode_full(self, binary: np.ndarray, kernel: np.ndarray) -> np.ndarray:
-        """収縮処理（全画像対応）"""
-        h, w = binary.shape
-        kh, kw = kernel.shape
-        pad_h, pad_w = kh // 2, kw // 2
-
-        # パディング
-        padded = np.pad(binary, ((pad_h, pad_h), (pad_w, pad_w)), mode='constant', constant_values=0)
-        result = np.zeros_like(binary)
-
-        # 収縮
-        for i in range(h):
-            for j in range(w):
-                region = padded[i:i+kh, j:j+kw]
-                if np.all(region == kernel):
-                    result[i, j] = 1
-
-        return result
 
     def _apply(self) -> None:
         """適用ボタン押下"""
