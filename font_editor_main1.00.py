@@ -1,10 +1,10 @@
 ﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-フォントエディタ v1.10 - ハイブリッド方式
+フォントエディタ v1.00 - ハイブリッド方式
 ビットマップ編集 → BDF/TTF書き出し対応
 作成日: 2025-10-03
-更新日: 2025-11-13 WebFont書き出し、CSV I/O、ガイドライン機能追加
+更新日: 2025-11-10 TTCサポート、保存進捗バー、parts連携強化
 """
 
 # === 標準ライブラリ ===
@@ -1064,17 +1064,17 @@ class GlyphEditor(tk.Toplevel):
         toolbar = tk.Frame(self, bg=Config.COLOR_BG)
         toolbar.pack(side='top', fill='x', padx=5, pady=5)
         
-        tk.Button(toolbar, text='保存', command=self._save).pack(side='left', padx=2)
-        tk.Button(toolbar, text='PNG保存', command=self._save_png).pack(side='left', padx=2)
-        tk.Button(toolbar, text='コピー', command=self._copy).pack(side='left', padx=2)
-        tk.Button(toolbar, text='切り取り', command=self._cut_selection).pack(side='left', padx=2)
-        tk.Button(toolbar, text='貼付', command=self._paste).pack(side='left', padx=2)
-        tk.Button(toolbar, text='クリア', command=self._clear).pack(side='left', padx=2)
-        tk.Button(toolbar, text='空白化', command=self._mark_as_empty).pack(side='left', padx=2)
-        tk.Button(toolbar, text='他フォント読込', command=self._load_from_other_font).pack(side='left', padx=2)
-
+        tk.Button(toolbar, text='💾 保存', command=self._save).pack(side='left', padx=2)
+        tk.Button(toolbar, text='📸 PNG保存', command=self._save_png).pack(side='left', padx=2)
+        tk.Button(toolbar, text='📋 コピー', command=self._copy).pack(side='left', padx=2)
+        tk.Button(toolbar, text='✂️ 切り取り', command=self._cut_selection).pack(side='left', padx=2)
+        tk.Button(toolbar, text='📄 貼付', command=self._paste).pack(side='left', padx=2)
+        tk.Button(toolbar, text='🗑️ クリア', command=self._clear).pack(side='left', padx=2)
+        tk.Button(toolbar, text='⭕ 空白化', command=self._mark_as_empty).pack(side='left', padx=2)
+        tk.Button(toolbar, text='🔥 他フォント読込', command=self._load_from_other_font).pack(side='left', padx=2)
+        
         # ズームコントロール
-        tk.Label(toolbar, text='ズーム:', bg=Config.COLOR_BG).pack(side='left', padx=(10, 0))
+        tk.Label(toolbar, text='🔍', bg=Config.COLOR_BG).pack(side='left', padx=(10, 0))
         tk.Button(toolbar, text='-', command=self._zoom_out, width=2).pack(side='left', padx=2)
         self.zoom_label = tk.Label(toolbar, text='100%', bg=Config.COLOR_BG, width=6)
         self.zoom_label.pack(side='left', padx=2)
@@ -1135,11 +1135,11 @@ class GlyphEditor(tk.Toplevel):
         # アンドゥ・リドゥボタン
         undo_redo_frame = tk.Frame(right_column, bg=Config.COLOR_BG)
         undo_redo_frame.pack(pady=(5, 0), fill='x')
-        tk.Button(undo_redo_frame, text='↶', command=self._undo, width=3).pack(side='left', padx=2)
-        tk.Button(undo_redo_frame, text='↷', command=self._redo, width=3).pack(side='left', padx=2)
+        tk.Button(undo_redo_frame, text='↩️', command=self._undo, width=3).pack(side='left', padx=2)
+        tk.Button(undo_redo_frame, text='↪️', command=self._redo, width=3).pack(side='left', padx=2)
 
         # 設定ボタン
-        tk.Button(right_column, text='設定', command=self._show_settings_dialog, width=10).pack(fill='x', padx=2, pady=(10, 2))
+        tk.Button(right_column, text='⚙ 設定', command=self._show_settings_dialog, width=10).pack(fill='x', padx=2, pady=(10, 2))
 
         # ナビゲーションウィンドウ
         nav_frame = tk.Frame(right_column, bg=Config.COLOR_BG)
@@ -1160,18 +1160,8 @@ class GlyphEditor(tk.Toplevel):
             command=self._update_preview,
             bg=Config.COLOR_BG
         )
-        grid_toggle.pack(anchor='w', padx=5, pady=(2, 2))
-
-        # [ADD] 2025-11-13: ガイドライン表示切り替え（一時的に無効化 - macOS互換性テスト）
-        # guideline_toggle = tk.Checkbutton(
-        #     right_column,
-        #     text='ガイドライン',
-        #     variable=self.show_guidelines,
-        #     command=self._update_preview,
-        #     bg=Config.COLOR_BG
-        # )
-        # guideline_toggle.pack(anchor='w', padx=5, pady=(2, 5))
-
+        grid_toggle.pack(anchor='w', padx=5, pady=(2, 5))
+        
         # ブラシサイズ調整
         tk.Label(right_column, text='ブラシサイズ', bg=Config.COLOR_BG, font=('Arial', 10, 'bold')).pack(pady=(15, 5))
         
@@ -3498,9 +3488,6 @@ class FontEditorApp(tk.Tk):
         file_menu.add_command(label='プロジェクトを開く...', command=self._open_project_dialog)
         file_menu.add_separator()
         file_menu.add_command(label='部首フォルダをインポート...', command=self._import_parts_folder)
-        # 一時的に無効化 - macOS互換性テスト
-        # file_menu.add_command(label='CSVからインポート...', command=self._import_csv)
-        # file_menu.add_command(label='CSVにエクスポート...', command=self._export_csv)
         file_menu.add_separator()
         file_menu.add_command(label='バックグラウンド読み込み停止', command=self._stop_bg_loading)
         file_menu.add_separator()
@@ -3512,26 +3499,21 @@ class FontEditorApp(tk.Tk):
         view_menu.add_command(label='グリフフィルタ...', command=self._show_filter_dialog)
         view_menu.add_command(label='テキストプレビュー...', command=self._show_text_preview)
         
-        # エクスポートメニュー (2025-10-03, 2025-11-13: WebFont追加)
+        # エクスポートメニュー (2025-10-03)
         export_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label='エクスポート', menu=export_menu)
         export_menu.add_command(label='BDF形式で保存...', command=self._export_bdf)
-        export_menu.add_command(label='TTF形式で保存...', command=self._export_ttf)
+        export_menu.add_command(label='TTF形式で保存... (高品質アウトライン)', command=self._export_ttf)
         export_menu.add_separator()
-        # 一時的に無効化 - macOS互換性テスト
-        # export_menu.add_command(label='WebFontパッケージ...', command=self._export_webfont_package)
-        # export_menu.add_command(label='WOFF形式で保存...', command=self._export_woff)
-        # export_menu.add_command(label='SVGフォント形式で保存...', command=self._export_svg)
-        # export_menu.add_separator()
         export_menu.add_command(label='PNG一括書き出し...', command=self._export_png_batch)
-
+        
         # ツールバー
         toolbar = tk.Frame(self, bg=Config.COLOR_BG)
         toolbar.pack(side='top', fill='x', padx=5, pady=5)
-
-        tk.Button(toolbar, text='フォントを開く', command=self._open_font).pack(side='left', padx=2)
-        tk.Button(toolbar, text='フィルタ', command=self._show_filter_dialog).pack(side='left', padx=2)
-        tk.Button(toolbar, text='プレビュー', command=self._show_text_preview).pack(side='left', padx=2)
+        
+        tk.Button(toolbar, text='📂 フォントを開く', command=self._open_font).pack(side='left', padx=2)
+        tk.Button(toolbar, text='🔍 フィルタ', command=self._show_filter_dialog).pack(side='left', padx=2)
+        tk.Button(toolbar, text='👁️ プレビュー', command=self._show_text_preview).pack(side='left', padx=2)
         # [ADD] 2025-10-23: 部首パレットを開くボタン
         tk.Button(toolbar, text='部首', command=self._open_parts_palette).pack(side='left', padx=2)
         
@@ -3871,242 +3853,13 @@ class FontEditorApp(tk.Tk):
         if not self.project.glyphs:
             messagebox.showwarning('警告', 'フォントが読み込まれていません')
             return
-
+        
         folder = filedialog.askdirectory(title='PNGを保存するフォルダを選択')
-
+        
         if folder:
             count = FontExporter.export_png_batch(self.project, folder)
             messagebox.showinfo('書き出し完了', f'{count}個のPNGを書き出しました:\n{folder}')
-
-    def _export_woff(self) -> None:
-        """WOFF形式で書き出し"""
-        if not self.project.glyphs:
-            messagebox.showwarning('警告', 'フォントが読み込まれていません')
-            return
-
-        path = filedialog.asksaveasfilename(
-            title='WOFFファイルとして保存',
-            defaultextension='.woff',
-            filetypes=[('WOFF', '*.woff'), ('すべて', '*.*')]
-        )
-
-        if path:
-            # 進捗ダイアログ作成
-            progress_win = tk.Toplevel(self)
-            progress_win.title('書き出し中...')
-            progress_win.geometry('400x120')
-            progress_win.transient(self)
-            progress_win.grab_set()
-
-            tk.Label(progress_win, text='WOFF形式で書き出しています...').pack(pady=10)
-
-            progress_var = tk.IntVar(value=0)
-            progress_bar = ttk.Progressbar(progress_win, variable=progress_var, maximum=100)
-            progress_bar.pack(pady=10, padx=20, fill='x')
-
-            status_label = tk.Label(progress_win, text='')
-            status_label.pack(pady=5)
-
-            def update_progress(current: int, total: int) -> None:
-                percent = int((current / total) * 100)
-                progress_var.set(percent)
-                status_label.config(text=f'{current}/{total} グリフ処理中...')
-                progress_win.update()
-
-            # 書き出し実行
-            success = TTFExporter.export_woff(self.project, path, update_progress)
-
-            progress_win.destroy()
-
-            if success:
-                messagebox.showinfo('完了', f'WOFFファイルを書き出しました:\n{path}')
-
-    def _export_svg(self) -> None:
-        """SVGフォント形式で書き出し"""
-        if not self.project.glyphs:
-            messagebox.showwarning('警告', 'フォントが読み込まれていません')
-            return
-
-        path = filedialog.asksaveasfilename(
-            title='SVGフォントとして保存',
-            defaultextension='.svg',
-            filetypes=[('SVG', '*.svg'), ('すべて', '*.*')]
-        )
-
-        if path:
-            # 進捗ダイアログ作成
-            progress_win = tk.Toplevel(self)
-            progress_win.title('書き出し中...')
-            progress_win.geometry('400x120')
-            progress_win.transient(self)
-            progress_win.grab_set()
-
-            tk.Label(progress_win, text='SVGフォント形式で書き出しています...').pack(pady=10)
-
-            progress_var = tk.IntVar(value=0)
-            progress_bar = ttk.Progressbar(progress_win, variable=progress_var, maximum=100)
-            progress_bar.pack(pady=10, padx=20, fill='x')
-
-            status_label = tk.Label(progress_win, text='')
-            status_label.pack(pady=5)
-
-            def update_progress(current: int, total: int) -> None:
-                percent = int((current / total) * 100)
-                progress_var.set(percent)
-                status_label.config(text=f'{current}/{total} グリフ処理中...')
-                progress_win.update()
-
-            # 書き出し実行
-            success = TTFExporter.export_svg_font(self.project, path, update_progress)
-
-            progress_win.destroy()
-
-            if success:
-                messagebox.showinfo('完了', f'SVGフォントを書き出しました:\n{path}')
-
-    def _export_webfont_package(self) -> None:
-        """WebFontパッケージ（TTF/WOFF/SVG + HTML）を書き出し"""
-        if not self.project.glyphs:
-            messagebox.showwarning('警告', 'フォントが読み込まれていません')
-            return
-
-        # フォント名入力ダイアログ（カスタム実装、macOS互換性のため）
-        dialog = tk.Toplevel(self)
-        dialog.title('フォント名')
-        dialog.geometry('400x150')
-        dialog.transient(self)
-        dialog.grab_set()
-
-        tk.Label(dialog, text='WebFontのフォント名を入力してください:', pady=10).pack()
-
-        entry = tk.Entry(dialog, width=40)
-        entry.insert(0, 'CustomFont')
-        entry.pack(pady=10)
-        entry.focus()
-
-        result = [None]
-
-        def on_ok():
-            result[0] = entry.get()
-            dialog.destroy()
-
-        def on_cancel():
-            dialog.destroy()
-
-        button_frame = tk.Frame(dialog)
-        button_frame.pack(pady=10)
-        tk.Button(button_frame, text='OK', command=on_ok, width=10).pack(side='left', padx=5)
-        tk.Button(button_frame, text='キャンセル', command=on_cancel, width=10).pack(side='left', padx=5)
-
-        # Enterキーでも確定
-        entry.bind('<Return>', lambda e: on_ok())
-
-        self.wait_window(dialog)
-
-        font_name = result[0]
-        if not font_name:
-            return
-
-        # 出力フォルダ選択
-        folder = filedialog.askdirectory(title='WebFontパッケージを保存するフォルダを選択')
-
-        if folder:
-            # 進捗ダイアログ作成
-            progress_win = tk.Toplevel(self)
-            progress_win.title('書き出し中...')
-            progress_win.geometry('400x120')
-            progress_win.transient(self)
-            progress_win.grab_set()
-
-            tk.Label(progress_win, text='WebFontパッケージを書き出しています...').pack(pady=10)
-
-            progress_var = tk.IntVar(value=0)
-            progress_bar = ttk.Progressbar(progress_win, variable=progress_var, maximum=100)
-            progress_bar.pack(pady=10, padx=20, fill='x')
-
-            status_label = tk.Label(progress_win, text='')
-            status_label.pack(pady=5)
-
-            def update_progress(current: int, total: int) -> None:
-                percent = int((current / total) * 100)
-                progress_var.set(percent)
-                status_label.config(text=f'{current}/{total} グリフ処理中...')
-                progress_win.update()
-
-            # 書き出し実行
-            success = TTFExporter.export_webfont_package(self.project, folder, font_name, update_progress)
-
-            progress_win.destroy()
-
-    def _export_csv(self) -> None:
-        """CSVファイルとしてエクスポート"""
-        if not self.project.glyphs:
-            messagebox.showwarning('警告', 'フォントが読み込まれていません')
-            return
-
-        path = filedialog.asksaveasfilename(
-            title='CSVファイルとして保存',
-            defaultextension='.csv',
-            filetypes=[('CSV', '*.csv'), ('すべて', '*.*')]
-        )
-
-        if path:
-            count = FileUtils.export_csv(self.project, path)
-            messagebox.showinfo('完了', f'{count}個のグリフをCSVに書き出しました:\n{path}')
-
-    def _import_csv(self) -> None:
-        """CSVファイルからインポート"""
-        path = filedialog.askopenfilename(
-            title='CSVファイルを開く',
-            filetypes=[('CSV', '*.csv'), ('すべて', '*.*')]
-        )
-
-        if not path:
-            return
-
-        # 確認ダイアログ
-        if self.project.glyphs:
-            ans = messagebox.askyesno(
-                '確認',
-                'CSVファイルからグリフをインポートします。\n'
-                '既存のグリフは上書きされる可能性があります。\n\n'
-                '続行しますか？'
-            )
-            if not ans:
-                return
-
-        # 進捗ダイアログ作成
-        progress_win = tk.Toplevel(self)
-        progress_win.title('インポート中...')
-        progress_win.geometry('400x120')
-        progress_win.transient(self)
-        progress_win.grab_set()
-
-        tk.Label(progress_win, text='CSVファイルからインポートしています...').pack(pady=10)
-
-        progress_var = tk.IntVar(value=0)
-        progress_bar = ttk.Progressbar(progress_win, variable=progress_var, maximum=100)
-        progress_bar.pack(pady=10, padx=20, fill='x')
-
-        status_label = tk.Label(progress_win, text='')
-        status_label.pack(pady=5)
-
-        def update_progress(current: int, total: int) -> None:
-            percent = int((current / total) * 100)
-            progress_var.set(percent)
-            status_label.config(text=f'{current}/{total} グリフ読み込み中...')
-            progress_win.update()
-
-        # インポート実行
-        count = FileUtils.import_csv(self.project, path, update_progress)
-
-        progress_win.destroy()
-
-        # グリッドビュー更新
-        self.grid_view.load_range(self.current_range_key)
-
-        messagebox.showinfo('完了', f'{count}個のグリフをCSVからインポートしました:\n{path}')
-
+    
     def _commit_all_open_editors(self) -> None:
         """開いているエディタを閉じずに全てプロジェクトへ反映（BLOCK9互換）"""
         for ed in list(self._open_editors):
@@ -4683,107 +4436,6 @@ class FileUtils:
             if parent:
                 messagebox.showerror('エラー', f'エクスポートエラー:\n{e}', parent=parent)
 
-    @staticmethod
-    def export_csv(project: FontProject, output_path: str) -> int:
-        """グリフデータをCSV形式で書き出し"""
-        import csv
-        import base64
-        from io import BytesIO
-
-        count = 0
-
-        with open(output_path, 'w', encoding='utf-8', newline='') as csvfile:
-            fieldnames = ['code', 'char', 'unicode', 'width', 'height', 'edited', 'data_base64']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-
-            with project._lock:
-                for code, glyph in sorted(project.glyphs.items()):
-                    if glyph.is_empty:
-                        continue
-
-                    # 画像をBase64エンコード
-                    img = glyph.get_image()
-                    if img:
-                        buffer = BytesIO()
-                        img.save(buffer, format='PNG')
-                        img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-
-                        try:
-                            char = chr(code)
-                        except ValueError:
-                            char = ''
-
-                        writer.writerow({
-                            'code': f'0x{code:04X}',
-                            'char': char,
-                            'unicode': f'U+{code:04X}',
-                            'width': Config.CANVAS_SIZE,
-                            'height': Config.CANVAS_SIZE,
-                            'edited': 'true' if glyph.edited else 'false',
-                            'data_base64': img_base64
-                        })
-                        count += 1
-
-        return count
-
-    @staticmethod
-    def import_csv(project: FontProject, input_path: str, progress_callback: Optional[Callable[[int, int], None]] = None) -> int:
-        """CSV形式からグリフデータを読み込み"""
-        import csv
-        import base64
-        from io import BytesIO
-
-        count = 0
-        rows = []
-
-        # CSVファイルを読み込み
-        with open(input_path, 'r', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            rows = list(reader)
-
-        total = len(rows)
-
-        for idx, row in enumerate(rows):
-            if progress_callback:
-                progress_callback(idx + 1, total)
-
-            try:
-                # コードポイント解析
-                code_str = row['code']
-                if code_str.startswith('0x') or code_str.startswith('0X'):
-                    code = int(code_str, 16)
-                else:
-                    code = int(code_str)
-
-                # Base64デコード
-                img_base64 = row['data_base64']
-                img_data = base64.b64decode(img_base64)
-
-                # 画像読み込み
-                buffer = BytesIO(img_data)
-                img = Image.open(buffer)
-
-                # プロジェクトに追加
-                with project._lock:
-                    if code not in project.glyphs:
-                        project.glyphs[code] = GlyphData()
-
-                    project.glyphs[code].image_data = img.tobytes()
-                    project.glyphs[code].image_mode = img.mode
-                    project.glyphs[code].image_size = img.size
-                    project.glyphs[code].is_empty = False
-                    project.glyphs[code].edited = (row.get('edited', 'false').lower() == 'true')
-
-                count += 1
-
-            except Exception as e:
-                print(f'CSV行 {idx + 1} の読み込みエラー: {e}')
-                continue
-
-        project.dirty = True
-        return count
-
 # ===== [BLOCK7-END] =====
 
 
@@ -5154,238 +4806,6 @@ class TTFExporter:
                 i += 1
         
         return commands
-
-    @staticmethod
-    def export_svg_font(
-        project: FontProject,
-        output_path: str,
-        progress_callback: Optional[Callable[[int, int], None]] = None
-    ) -> bool:
-        """SVGフォント形式で書き出し"""
-        try:
-            edited_glyphs = project.get_edited_glyphs()
-            with project._lock:
-                all_valid_glyphs = [(code, glyph) for code, glyph in project.glyphs.items() if not glyph.is_empty]
-
-            if not all_valid_glyphs:
-                messagebox.showwarning('警告', '書き出すグリフがありません')
-                return False
-
-            total = len(all_valid_glyphs)
-
-            # SVGフォントヘッダー
-            svg_lines = [
-                '<?xml version="1.0" standalone="no"?>',
-                '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">',
-                '<svg xmlns="http://www.w3.org/2000/svg">',
-                '<defs>',
-                f'<font id="CustomFont" horiz-adv-x="{Config.CANVAS_SIZE}">',
-                f'<font-face units-per-em="{Config.CANVAS_SIZE}" ascent="{int(Config.CANVAS_SIZE * Config.ASCENT_RATIO)}" descent="-{int(Config.CANVAS_SIZE * Config.DESCENT_RATIO)}" />',
-                '<missing-glyph horiz-adv-x="500" />',
-            ]
-
-            # 各グリフを処理
-            for idx, (code, glyph_data) in enumerate(all_valid_glyphs):
-                if progress_callback:
-                    progress_callback(idx + 1, total)
-
-                # ビットマップをSVGパスに変換
-                img = glyph_data.get_image()
-                if img:
-                    # potraceを使ってSVGパスを生成
-                    with tempfile.NamedTemporaryFile(suffix='.bmp', delete=False) as tmp_bmp:
-                        img.convert('1').save(tmp_bmp.name, 'BMP')
-                        tmp_bmp_path = tmp_bmp.name
-
-                    with tempfile.NamedTemporaryFile(suffix='.svg', delete=False) as tmp_svg:
-                        tmp_svg_path = tmp_svg.name
-
-                    try:
-                        # potraceでSVGパスを生成
-                        subprocess.run([
-                            'potrace',
-                            '-s',  # SVG出力
-                            '-o', tmp_svg_path,
-                            tmp_bmp_path
-                        ], check=True, capture_output=True)
-
-                        # SVGパスを読み取る
-                        with open(tmp_svg_path, 'r', encoding='utf-8') as f:
-                            svg_content = f.read()
-
-                        # パスデータを抽出（簡易版）
-                        import re
-                        path_match = re.search(r'd="([^"]+)"', svg_content)
-                        if path_match:
-                            path_data = path_match.group(1)
-                            # Y軸を反転（SVGとフォントで座標系が逆）
-                            svg_lines.append(f'<glyph unicode="&#x{code:04X};" horiz-adv-x="{Config.CANVAS_SIZE}" d="{path_data}" />')
-
-                    finally:
-                        # 一時ファイル削除
-                        if os.path.exists(tmp_bmp_path):
-                            os.unlink(tmp_bmp_path)
-                        if os.path.exists(tmp_svg_path):
-                            os.unlink(tmp_svg_path)
-
-            # SVGフッター
-            svg_lines.extend([
-                '</font>',
-                '</defs>',
-                '</svg>'
-            ])
-
-            # ファイル保存
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(svg_lines))
-
-            return True
-
-        except Exception as e:
-            messagebox.showerror('エラー', f'SVG書き出しエラー:\n{str(e)}')
-            import traceback
-            traceback.print_exc()
-            return False
-
-    @staticmethod
-    def export_woff(
-        project: FontProject,
-        output_path: str,
-        progress_callback: Optional[Callable[[int, int], None]] = None
-    ) -> bool:
-        """WOFF形式で書き出し（TTF経由）"""
-        try:
-            from fontTools.ttLib import TTFont  # type: ignore
-
-            # まずTTFを一時ファイルに書き出し
-            with tempfile.NamedTemporaryFile(suffix='.ttf', delete=False) as tmp_ttf:
-                tmp_ttf_path = tmp_ttf.name
-
-            # TTF書き出し
-            if not TTFExporter.export_ttf(project, tmp_ttf_path, progress_callback):
-                return False
-
-            # TTFをWOFFに変換
-            font = TTFont(tmp_ttf_path)
-            font.flavor = 'woff'
-            font.save(output_path)
-
-            # 一時ファイル削除
-            if os.path.exists(tmp_ttf_path):
-                os.unlink(tmp_ttf_path)
-
-            return True
-
-        except Exception as e:
-            messagebox.showerror('エラー', f'WOFF書き出しエラー:\n{str(e)}')
-            import traceback
-            traceback.print_exc()
-            return False
-
-    @staticmethod
-    def export_webfont_package(
-        project: FontProject,
-        output_dir: str,
-        font_name: str = 'CustomFont',
-        progress_callback: Optional[Callable[[int, int], None]] = None
-    ) -> bool:
-        """WebFontパッケージ（TTF/WOFF/SVG + HTMLサンプル）を書き出し"""
-        try:
-            # 出力ディレクトリ作成
-            os.makedirs(output_dir, exist_ok=True)
-
-            base_name = font_name.replace(' ', '')
-
-            # TTF書き出し
-            ttf_path = os.path.join(output_dir, f'{base_name}.ttf')
-            if not TTFExporter.export_ttf(project, ttf_path, progress_callback):
-                return False
-
-            # WOFF書き出し
-            woff_path = os.path.join(output_dir, f'{base_name}.woff')
-            if not TTFExporter.export_woff(project, woff_path):
-                return False
-
-            # SVG書き出し
-            svg_path = os.path.join(output_dir, f'{base_name}.svg')
-            TTFExporter.export_svg_font(project, svg_path)
-
-            # HTMLサンプル生成
-            html_content = f'''<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>{font_name} - WebFont Sample</title>
-<style type="text/css">
-@font-face {{
-  font-family: "{font_name}";
-  src: url("{base_name}.woff") format('woff'),
-       url("{base_name}.ttf") format('truetype'),
-       url("{base_name}.svg#{font_name}") format('svg');
-}}
-
-.customFont {{
-  font-family: "{font_name}", sans-serif;
-  font-size: 48px;
-  line-height: 1.5;
-}}
-
-body {{
-  font-family: sans-serif;
-  max-width: 800px;
-  margin: 50px auto;
-  padding: 20px;
-}}
-
-h1 {{
-  border-bottom: 2px solid #333;
-  padding-bottom: 10px;
-}}
-
-.sample-text {{
-  border: 1px solid #ddd;
-  padding: 20px;
-  margin: 20px 0;
-  background-color: #f9f9f9;
-}}
-</style>
-</head>
-<body>
-<h1>{font_name} - WebFont Sample</h1>
-
-<h2>サンプルテキスト</h2>
-<div class="sample-text customFont">
-<p>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz</p>
-<p>0123456789</p>
-<p>あいうえおかきくけこさしすせそ</p>
-<p>アイウエオカキクケコサシスセソ</p>
-<p>漢字フォントサンプル</p>
-</div>
-
-<h2>フォントファイル</h2>
-<ul>
-  <li>{base_name}.ttf - TrueType形式</li>
-  <li>{base_name}.woff - Web Open Font Format</li>
-  <li>{base_name}.svg - SVGフォント</li>
-</ul>
-
-<p>Generated by FontGen3 v1.10</p>
-</body>
-</html>'''
-
-            html_path = os.path.join(output_dir, 'sample.html')
-            with open(html_path, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-
-            messagebox.showinfo('成功', f'WebFontパッケージを書き出しました:\n{output_dir}\n\n含まれるファイル:\n- {base_name}.ttf\n- {base_name}.woff\n- {base_name}.svg\n- sample.html')
-
-            return True
-
-        except Exception as e:
-            messagebox.showerror('エラー', f'WebFontパッケージ書き出しエラー:\n{str(e)}')
-            import traceback
-            traceback.print_exc()
-            return False
 
 # ===== [BLOCK8-END] =====
 
